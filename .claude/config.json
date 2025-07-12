@@ -1,0 +1,15 @@
+{
+  "version": "1.0.72",
+  "project": {
+    "name": "frontend_router_mcp",
+    "type": "claude-flow",
+    "created": "2025-07-10T00:11:20.180Z"
+  },
+  "features": {
+    "swarm": true,
+    "sparc": false,
+    "memory": true,
+    "terminal": true,
+    "mcp": true
+  }
+}

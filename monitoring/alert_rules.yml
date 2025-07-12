@@ -1,0 +1,116 @@
+groups:
+- name: frontend-router-mcp-alerts
+  rules:
+  # Service Health Alerts
+  - alert: ServiceDown
+    expr: up{job="frontend-router-mcp"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Frontend Router MCP service is down"
+      description: "Frontend Router MCP service has been down for more than 1 minute."
+
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status_code=~"5.."}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High error rate detected"
+      description: "HTTP error rate is {{ $value }} requests per second for {{ $labels.job }}"
+
+  # Performance Alerts
+  - alert: HighResponseTime
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High response time detected"
+      description: "95th percentile response time is {{ $value }}s for {{ $labels.job }}"
+
+  - alert: HighMemoryUsage
+    expr: memory_usage_bytes > 1000000000  # 1GB
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage detected"
+      description: "Memory usage is {{ $value | humanize }}B for {{ $labels.job }}"
+
+  # WebSocket Alerts
+  - alert: WebSocketConnectionsHigh
+    expr: websocket_connections_active > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High number of WebSocket connections"
+      description: "WebSocket connections count is {{ $value }} for {{ $labels.job }}"
+
+  - alert: WebSocketMessageBacklog
+    expr: websocket_messages_total{direction="inbound"} - websocket_messages_total{direction="outbound"} > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "WebSocket message backlog detected"
+      description: "WebSocket message backlog is {{ $value }} for {{ $labels.job }}"
+
+  # MCP Server Alerts
+  - alert: MCPHighErrorRate
+    expr: rate(mcp_requests_total{status="error"}[5m]) > 0.05
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High MCP error rate detected"
+      description: "MCP error rate is {{ $value }} requests per second for {{ $labels.job }}"
+
+  - alert: MCPToolExecutionFailures
+    expr: rate(mcp_tool_executions_total{status="error"}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "MCP tool execution failures detected"
+      description: "MCP tool execution failure rate is {{ $value }} per second for {{ $labels.job }}"
+
+  # System Resource Alerts
+  - alert: HighGoroutineCount
+    expr: goroutines_active > 10000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High goroutine count detected"
+      description: "Goroutine count is {{ $value }} for {{ $labels.job }}"
+
+  - alert: ChannelUtilizationHigh
+    expr: channel_utilization_percent > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High channel utilization detected"
+      description: "Channel {{ $labels.channel_name }} utilization is {{ $value }}% for {{ $labels.job }}"
+
+  # Business Logic Alerts
+  - alert: UserQuestionTimeout
+    expr: rate(user_questions_total{status="timeout"}[5m]) > 0.01
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "User question timeouts detected"
+      description: "User question timeout rate is {{ $value }} per second for {{ $labels.job }}"
+
+  - alert: NoActiveUserSessions
+    expr: active_user_sessions == 0
+    for: 10m
+    labels:
+      severity: info
+    annotations:
+      summary: "No active user sessions"
+      description: "No active user sessions for more than 10 minutes for {{ $labels.job }}"
