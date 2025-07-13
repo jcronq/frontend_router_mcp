@@ -321,8 +321,8 @@ func (s *Sanitizer) sanitizeUnicode(input string) string {
 			continue
 		}
 		
-		// Skip surrogate characters
-		if unicode.IsSurrogate(r) {
+		// Skip surrogate characters (U+D800 to U+DFFF)
+		if r >= 0xD800 && r <= 0xDFFF {
 			continue
 		}
 		

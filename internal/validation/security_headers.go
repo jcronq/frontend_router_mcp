@@ -250,12 +250,12 @@ func (shm *SecurityHeadersMiddleware) initializeCSRF() {
 		[]byte(shm.config.CSRFSecretKey),
 		csrf.Secure(shm.config.CSRFCookieSecure),
 		csrf.HttpOnly(shm.config.CSRFCookieHttpOnly),
-		csrf.SameSite(shm.config.CSRFCookieSameSite),
+		csrf.SameSite(csrf.SameSiteMode(shm.config.CSRFCookieSameSite)),
 		csrf.MaxAge(shm.config.CSRFCookieMaxAge),
 		csrf.FieldName(shm.config.CSRFFieldName),
 		csrf.CookieName(shm.config.CSRFCookieName),
 		csrf.RequestHeader(shm.config.CSRFHeaderName),
-		csrf.TrustedOrigins(shm.config.CSRFTrustedOrigins...),
+		csrf.TrustedOrigins(shm.config.CSRFTrustedOrigins),
 		csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "CSRF token validation failed", http.StatusForbidden)
 		})),

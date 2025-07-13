@@ -1,7 +1,6 @@
 package validation
 
 import (
-	"errors"
 	"fmt"
 	"html"
 	"net/url"
@@ -25,6 +24,11 @@ type ValidationError struct {
 	Tag     string `json:"tag"`
 	Message string `json:"message"`
 	Value   string `json:"value,omitempty"`
+}
+
+// Error implements the error interface
+func (ve ValidationError) Error() string {
+	return ve.Message
 }
 
 // ValidationErrors represents multiple validation errors
