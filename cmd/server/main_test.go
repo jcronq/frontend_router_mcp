@@ -9,12 +9,48 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jcronq/frontend_router_mcp/internal/logging"
+	"github.com/jcronq/frontend_router_mcp/internal/metrics"
 	"github.com/jcronq/frontend_router_mcp/internal/tools"
 	"github.com/jcronq/frontend_router_mcp/internal/wsserver"
 	"github.com/jcronq/frontend_router_mcp/pkg/messaging"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
+
+// Test helper functions
+var (
+	testLogger  *logging.Logger
+	testMetrics *metrics.Metrics
+	once        sync.Once
+)
+
+func createTestLogger() *logging.Logger {
+	once.Do(func() {
+		config := logging.Config{
+			Service:   "test",
+			Component: "test",
+			Level:     logging.INFO,
+			Output:    nil, // will default to os.Stdout
+		}
+		testLogger = logging.NewLogger(config)
+		testMetrics = metrics.NewMetrics()
+	})
+	return testLogger
+}
+
+func createTestMetrics() *metrics.Metrics {
+	once.Do(func() {
+		config := logging.Config{
+			Service:   "test",
+			Component: "test",
+			Level:     logging.INFO,
+			Output:    nil, // will default to os.Stdout
+		}
+		testLogger = logging.NewLogger(config)
+		testMetrics = metrics.NewMetrics()
+	})
+	return testMetrics
+}
 
 // TestUserQuestion tests the userQuestion struct
 func TestUserQuestion(t *testing.T) {
@@ -70,7 +106,7 @@ func TestHandleWebSocketToMCP(t *testing.T) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 	
 	// Test question handling
 	q := userQuestion{
@@ -103,7 +139,7 @@ func TestHandleWebSocketToMCP_ConnectMessage(t *testing.T) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 	
 	// Create a mock response sender
 	mockSender := &mockResponseSender{}
@@ -143,7 +179,7 @@ func TestHandleWebSocketToMCP_UserResponse(t *testing.T) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 	
 	// Create a mock response sender
 	mockSender := &mockResponseSender{}
@@ -211,7 +247,7 @@ func TestHandleWebSocketToMCP_DisconnectMessage(t *testing.T) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 	
 	// Create a mock response sender
 	mockSender := &mockResponseSender{}
@@ -266,7 +302,7 @@ func TestHandleWebSocketToMCP_UnknownMessage(t *testing.T) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 	
 	// Send an unknown message type
 	unknownPayload, _ := json.Marshal(map[string]interface{}{
@@ -300,7 +336,7 @@ func TestHandleWebSocketToMCP_InvalidJSON(t *testing.T) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 	
 	// Send a message with invalid JSON
 	invalidMsg := &messaging.Message{
@@ -331,7 +367,7 @@ func TestHandleWebSocketToMCP_ContextCancellation(t *testing.T) {
 	// Start the handler in a goroutine
 	done := make(chan bool)
 	go func() {
-		handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+		handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 		done <- true
 	}()
 	
@@ -361,7 +397,7 @@ func TestHandleUserResponses(t *testing.T) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleUserResponses(ctx, responseCh, mockAskUserTool)
+	go handleUserResponses(ctx, responseCh, mockAskUserTool, createTestLogger(), createTestMetrics())
 	
 	// First, we need to set up a pending request in the tool
 	// This is a bit tricky since we need to access the internal state
@@ -412,7 +448,7 @@ func TestHandleUserResponses_ContextCancellation(t *testing.T) {
 	// Start the handler in a goroutine
 	done := make(chan bool)
 	go func() {
-		handleUserResponses(ctx, responseCh, mockAskUserTool)
+		handleUserResponses(ctx, responseCh, mockAskUserTool, createTestLogger(), createTestMetrics())
 		done <- true
 	}()
 	
@@ -438,7 +474,7 @@ func TestConcurrentMessageHandling(t *testing.T) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 	
 	const numMessages = 100
 	var wg sync.WaitGroup
@@ -488,7 +524,7 @@ func TestChannelClosedHandling(t *testing.T) {
 	// Start the handler in a goroutine
 	done := make(chan bool)
 	go func() {
-		handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+		handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 		done <- true
 	}()
 	
@@ -587,7 +623,7 @@ func BenchmarkHandleWebSocketToMCP(b *testing.B) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+	go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 	
 	// Drain the response channel
 	go func() {
@@ -626,7 +662,7 @@ func BenchmarkHandleUserResponses(b *testing.B) {
 	defer cancel()
 	
 	// Start the handler in a goroutine
-	go handleUserResponses(ctx, responseCh, mockAskUserTool)
+	go handleUserResponses(ctx, responseCh, mockAskUserTool, createTestLogger(), createTestMetrics())
 	
 	response := userResponse{
 		RequestID: "benchmark-123",
@@ -649,7 +685,7 @@ func TestEdgeCases(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 		
-		go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+		go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 		
 		// Send nil message
 		messageCh <- nil
@@ -667,7 +703,7 @@ func TestEdgeCases(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 		
-		go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh)
+		go handleWebSocketToMCP(ctx, messageCh, questionCh, responseCh, createTestLogger(), createTestMetrics())
 		
 		// Send message with empty payload
 		msg := &messaging.Message{
